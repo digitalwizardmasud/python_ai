@@ -177,3 +177,6 @@ pyrightconfig.json
 myenv
 .vscode
 chroma
+
+data/*
+!data/*.md

@@ -12,6 +12,7 @@ from uuid import uuid4
 from langchain_community.document_loaders import DirectoryLoader
 from langchain_community.document_loaders import TextLoader
 from langchain_ollama import ChatOllama
+from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
 from langchain.retrievers.multi_query import MultiQueryRetriever
 from langchain_core.runnables import RunnablePassthrough
@@ -20,7 +21,7 @@ load_dotenv()
 try:
     # LOAD PDF 
     loader = PyPDFLoader(
-    file_path = "./data/history.pdf",
+    file_path = "./data/resume.pdf",
     extract_images = False,
     )
     docs = loader.lazy_load()
@@ -47,46 +48,42 @@ try:
     splitted_docs = text_splitter.split_documents(docs)
     
     # EMBEDDING 
-    embeddings = OllamaEmbeddings(model="mxbai-embed-large")
-    # embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
+    # embeddings = OllamaEmbeddings(model="nomic-embed-text")
+    embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
     
     # Vector DB 
     persistent_client = chromadb.PersistentClient()
-    collection = persistent_client.get_or_create_collection("historycollection")
+    collection = persistent_client.get_or_create_collection("resumeopenai")
     
     vector_store = Chroma(
         client=persistent_client,
-        collection_name="historycollection",
+        collection_name="resumeopenai",
         embedding_function=embeddings,
     )
     # uuids = [str(uuid4()) for _ in range(len(splitted_docs))]
-    # vector_store.add_documents(documents=splitted_docs, ids=uuids)
+    # added = vector_store.add_documents(documents=splitted_docs, ids=uuids)
+    # print(added, 'added')
     
     
-    # Retrival Data
-    # results = vector_store.similarity_search("write a summary for A Land of Water", k=2)
-    # for x in results:
-    #     pprint(x)
     
-    
-    llm = ChatOllama(
-        model="llama3",
+    # llm = ChatOllama(
+    #     model="llama3",
+    #     temperature=0,
+    # )
+
+    llm = ChatOpenAI(
+        model="gpt-4o",
         temperature=0,
+        max_tokens=None,
+        timeout=None,
+        max_retries=2,
     )
-    # prompt = ChatPromptTemplate.from_messages([
-    #     ("system", "You are RoboAI, an AI Assistant"),
-    #     ("human", "{input}")
-    # ])
-    # chain = prompt | llm
-    # output = chain.invoke({
-    #     "input" : "write a summary within 200 character"
-    # })
-    # pprint(output)
+    
     
     query_prompt = PromptTemplate(
         input_variables = ["question"],
         template = """
-        You are AI language model assistant. your task is to generate five different versions of the given user question to retrieve relevant documents from a vector database. Original Question is {question}
+        You are AI language model assistant. your task is to generate five different versions of the given user question to retrieve relevant documents from a vector database. By generating multiple perspectives on the user question, your goal is to help the user overcome some of the limitation of the distance-based similarity search. Provide these alternative questions separated by newlines. Original Question is {question}. 
         """
     )
     retriever = MultiQueryRetriever.from_llm(
@@ -96,8 +93,10 @@ try:
     )
     
     template = """
-    Answer the question based ONLY on the following context: {context}
+    Answer the question based on the following context: {context}
     Question: {question}
+    if the provided context does not contain proper information then generate it from llm. 
+    Note:Don't mention these type text on output: The provided context does not contain information
     """
     chatPrompt = ChatPromptTemplate.from_template(template)
     chain = (
@@ -106,7 +105,12 @@ try:
         | llm
         | StrOutputParser()
     )
-    result = chain.invoke("who is the prime minister of bangladesh")
-    print(result)
+    
+    def myfunc():
+        question = input("Write your question: => ")
+        result = chain.invoke(question)
+        print(result)
+        myfunc()
+    myfunc()
 except Exception as e:
     pprint(e)
