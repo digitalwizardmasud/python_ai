@@ -17,11 +17,12 @@ from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
 from langchain.retrievers.multi_query import MultiQueryRetriever
 from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
+
 load_dotenv()
 try:
     # LOAD PDF 
     loader = PyPDFLoader(
-    file_path = "./data/resume.pdf",
+    file_path = "../data/resume.pdf",
     extract_images = False,
     )
     docs = loader.lazy_load()
@@ -52,7 +53,7 @@ try:
     embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
     
     # Vector DB 
-    persistent_client = chromadb.PersistentClient()
+    persistent_client = chromadb.PersistentClient(path = "../chroma")
     collection = persistent_client.get_or_create_collection("resumeopenai")
     
     vector_store = Chroma(
@@ -60,10 +61,14 @@ try:
         collection_name="resumeopenai",
         embedding_function=embeddings,
     )
+    
+    
     # uuids = [str(uuid4()) for _ in range(len(splitted_docs))]
     # added = vector_store.add_documents(documents=splitted_docs, ids=uuids)
     # print(added, 'added')
     
+    # search_result = search.run("Obama's first name?")
+    # pprint([search_result][0])
     
     
     # llm = ChatOllama(
@@ -86,10 +91,14 @@ try:
         You are AI language model assistant. your task is to generate five different versions of the given user question to retrieve relevant documents from a vector database. By generating multiple perspectives on the user question, your goal is to help the user overcome some of the limitation of the distance-based similarity search. Provide these alternative questions separated by newlines. Original Question is {question}. 
         """
     )
+   
+
+
     retriever = MultiQueryRetriever.from_llm(
         vector_store.as_retriever(),
         llm,
-        prompt=query_prompt
+        prompt=query_prompt,
+        
     )
     
     template = """
