@@ -63,8 +63,8 @@ prompt = ChatPromptTemplate.from_template(template)
 retriever = vectorstore.as_retriever()
 retriever_chain = (
     {
-        "context" : SerpAPIWrapper().run,
-        # "context" : retriever.with_config(run_name="Docs"),
+        # "context" : SerpAPIWrapper().run,
+        "context" : retriever.with_config(run_name="Docs"),
         "question" : RunnablePassthrough(),
     }
     | prompt
@@ -75,9 +75,9 @@ retriever_chain = (
 # for chunk in retriever_chain.stream("who is masud?"):
 #     print(chunk, end="")
 
-# def start():
-#     question = input("=> Ask me: ")
-#     print(retriever_chain.invoke(question), 'with chain')
-#     start()
-# start()
+def start():
+    question = input("=> Ask me: ")
+    print(retriever_chain.invoke(question), 'with chain')
+    start()
+start()
 
