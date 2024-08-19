@@ -8,7 +8,7 @@ from langchain.globals import set_verbose, set_debug
 from langchain.tools import BaseTool
 from langchain_core.tools import Tool, StructuredTool
 from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
-
+from langchain_community.tools.tavily_search import TavilySearchResults
 set_verbose(True)
 set_debug(True)
 
@@ -43,12 +43,15 @@ tools = [
         func=search.run,
         description="A search engine. Useful for when you need to answer questions about current events. Input should be a search query.",
     ),
+    
+    # TavilySearchResults(max_results=1)
    
 ]
 agent = create_tool_calling_agent(llm, tools, prompt)
+parser = StrOutputParser()
 agent_executor = AgentExecutor(agent=agent, tools=tools)
 result = agent_executor.invoke({
-    "input": "Todays date? make it json ",
+    "input": "Todays date",
     "chat_history" : chat_history
 })
 
